@@ -13,8 +13,8 @@ import robotsimulator.Brain;
 
 public class PrimarySoldier extends Brain {
 
-	private boolean temp, startTurn, turnTask, moveTask;
-	private double endTaskDirection, currentHeading, countTemp;
+	private boolean temp, startTurn, turnTask, startBack;
+	private double endTaskDirection, backCount, turnCount, turnDie;
 	private Types WALL = IFrontSensorResult.Types.WALL;
 	private Types MAIN_OPPONENT = IFrontSensorResult.Types.OpponentMainBot;
 	private Types SECONDARY_OPPONEONT = IFrontSensorResult.Types.OpponentSecondaryBot;
@@ -27,28 +27,64 @@ public class PrimarySoldier extends Brain {
 
 	@Override
 	public void activate() {
-		startTurn = true;
+		startTurn = false;
 		myId = ++id;
+		turnCount = 300;
 
 	}
+
+	double angle = 0.25;
 
 	@Override
 	public void step() {
 		ArrayList<IRadarResult> radarResults = detectRadar();
 
+		if (turnCount > 0) {
+			// moveBack();
+			turnCount--;
+			if (turnCount == 0) {
+				startTurn = true;
+				angle = 0.05;
+				turnCount = 100;
+			}
+			// return;
+		}
+
+		if (startBack) {
+			backCount = 20;
+			startBack = false;
+		}
+		if (backCount > 0) {
+			backCount--;
+			moveBack();
+			if (backCount == 0) {
+				startTurn = true;
+				angle = 0.15;
+			}
+			return;
+		}
 		if (startTurn) {
 			double tmp = 0;
-			tmp = ThreadLocalRandom.current().nextDouble(-0.35 * Math.PI, 0.35 * Math.PI);
+			tmp = ThreadLocalRandom.current().nextDouble(-angle * Math.PI, angle * Math.PI);
 			endTaskDirection = getHeading() + tmp;
 			turnTask = true;
 			startTurn = false;
-			countTemp = 100;
 		}
 		if (turnTask) {
+			turnDie++;
+			if (turnDie > 100) {
+				turnDie = 0;
+				startBack = true;
+				turnTask = false;
+				angle = 0.25;
+				step();
+				return;
+			}
 			if (isHeading(endTaskDirection)) {
 				turnTask = false;
-				// TODO sortie du turn sans action
+				angle = 0.25;
 				temp = true;
+				turnDie = 0;
 			} else if (Math.sin(getHeading() - endTaskDirection) > 0) {
 				stepTurn(Parameters.Direction.RIGHT);
 				return;
@@ -71,17 +107,21 @@ public class PrimarySoldier extends Brain {
 					|| r.getObjectType() == IRadarResult.Types.OpponentMainBot) {
 
 				fire(r.getObjectDirection());
+				turnCount += 5;
 				return;
 			} else {
-				System.out.println(r.getObjectDirection());
-				if (r.getObjectType() != IRadarResult.Types.BULLET)
-					if (r.getObjectDistance() < 130
-							&& Math.abs(Math.sin(getHeading() - r.getObjectDirection())) < 0.3 || r.getObjectDistance() < 80) {
-						sendLogMessage(r.getObjectDistance() + ":  un non ennemi detecte : " + r.getObjectType());
-						startTurn = true;
-						step();
-						return;
-					}
+				// System.out.println(r.getObjectDirection());
+				// if (r.getObjectType() != IRadarResult.Types.BULLET)
+				// if (r.getObjectDistance() < 130 && Math.abs(Math.sin(getHeading() -
+				// r.getObjectDirection())) < 0.3
+				// || r.getObjectDistance() < 100) {
+				// sendLogMessage(r.getObjectDistance() + ": un non ennemi detecte : " +
+				// r.getObjectType());
+				// backCount = 100;
+				// startTurn = true;
+				// step();
+				// return;
+				// }
 			}
 		}
 		sendLogMessage("mooooove + " + myId);
