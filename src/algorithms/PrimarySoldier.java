@@ -80,7 +80,7 @@ public class PrimarySoldier extends Brain {
 						sendLogMessage(r.getObjectDistance() + ":  un non ennemi detecte : " + r.getObjectType());
 						startTurn = true;
 						step();
-						return;a
+						return;
 					}
 			}
 		}
